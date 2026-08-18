@@ -1,0 +1,1998 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>IPL Analytics — Scoreboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Teko:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root{
+    --bg: #0A1712;
+    --bg2: #0E1F17;
+    --panel: #12261C;
+    --panel2: #16301F;
+    --line: rgba(233,229,209,0.10);
+    --line-strong: rgba(233,229,209,0.18);
+    --cream: #EFEADA;
+    --muted: #93A896;
+    --gold: #E7B53A;
+    --gold-dim: #B8901F;
+    --red: #C4433C;
+    --green-led: #5FBF7A;
+    --font-display: 'Teko', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'Space Mono', monospace;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--cream);
+    font-family:var(--font-body);
+    padding: 28px 6vw 80px;
+  }
+  .wrap{max-width:1180px; margin:0 auto;}
+
+  /* ---- Header ---- */
+  .eyebrow{
+    font-family:var(--font-mono); font-size:11px; letter-spacing:.18em; text-transform:uppercase;
+    color:var(--gold); margin:0 0 6px;
+  }
+  h1{
+    font-family:var(--font-display); font-weight:600; font-size:clamp(40px,6vw,68px);
+    line-height:0.95; margin:0 0 6px; letter-spacing:0.5px;
+    color:var(--cream);
+  }
+  .sub{ color:var(--muted); font-size:15px; max-width:640px; margin:0 0 28px; line-height:1.55;}
+
+  .seam{
+    height:2px; margin: 26px 0 30px; position:relative;
+    background: repeating-linear-gradient(90deg, var(--line-strong) 0 10px, transparent 10px 20px);
+  }
+  .seam::before, .seam::after{
+    content:''; position:absolute; top:-3px; width:8px; height:8px; border-radius:50%;
+    background:var(--red); opacity:.55;
+  }
+  .seam::before{left:0;} .seam::after{right:0;}
+
+  /* ---- KPI scoreboard strip ---- */
+  .kpi-row{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:2px;
+    background:var(--line); border:1px solid var(--line-strong); border-radius:6px; overflow:hidden;
+  }
+  .kpi{
+    background:var(--panel); padding:16px 14px 14px; text-align:left;
+  }
+  .kpi .num{
+    font-family:var(--font-display); font-size:38px; font-weight:600; color:var(--gold);
+    line-height:1; letter-spacing:0.5px; font-variant-numeric:tabular-nums;
+  }
+  .kpi .lbl{
+    font-family:var(--font-mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--muted); margin-top:6px;
+  }
+
+  /* ---- Sections ---- */
+  section{ margin-top:52px; }
+  .sec-head{ display:flex; align-items:baseline; gap:12px; margin-bottom:18px; flex-wrap:wrap;}
+  .sec-num{
+    font-family:var(--font-mono); font-size:13px; color:var(--gold-dim); border:1px solid var(--line-strong);
+    border-radius:4px; padding:2px 7px;
+  }
+  h2{
+    font-family:var(--font-display); font-size:30px; font-weight:600; margin:0; color:var(--cream); letter-spacing:.3px;
+  }
+  .sec-desc{ color:var(--muted); font-size:13.5px; margin: -8px 0 20px 0; max-width:620px; line-height:1.6;}
+
+  .grid2{ display:grid; grid-template-columns: 1.15fr 0.85fr; gap:20px; }
+  .grid3{ display:grid; grid-template-columns: repeat(3,1fr); gap:16px; }
+  @media (max-width:860px){ .grid2{grid-template-columns:1fr;} .grid3{grid-template-columns:1fr;} }
+
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:18px 20px 14px;
+  }
+  .card h3{
+    font-family:var(--font-mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--muted); font-weight:400; margin:0 0 14px;
+  }
+
+  table{ width:100%; border-collapse:collapse; font-size:13.5px;}
+  th{
+    text-align:left; font-family:var(--font-mono); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--muted); font-weight:400; padding:6px 8px; border-bottom:1px solid var(--line-strong);
+  }
+  td{ padding:7px 8px; border-bottom:1px solid var(--line); color:var(--cream);}
+  tr:last-child td{ border-bottom:none;}
+  td.num, th.num{ text-align:right; font-variant-numeric:tabular-nums;}
+  .rank{ color:var(--gold-dim); font-family:var(--font-mono); font-size:12px; width:22px; display:inline-block;}
+  tbody tr:hover td{ background: rgba(231,181,58,0.05); }
+
+  /* Toggle buttons */
+  .tabbar{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
+  .tabbtn{
+    font-family:var(--font-mono); font-size:11px; letter-spacing:.05em; text-transform:uppercase;
+    background:transparent; color:var(--muted); border:1px solid var(--line-strong); border-radius:4px;
+    padding:6px 12px; cursor:pointer; transition:all .15s;
+  }
+  .tabbtn.active{ background:var(--gold); color:#20180A; border-color:var(--gold); font-weight:700;}
+  .tabbtn:hover:not(.active){ border-color:var(--gold-dim); color:var(--cream);}
+
+  select{
+    font-family:var(--font-mono); font-size:12px; background:var(--panel2); color:var(--cream);
+    border:1px solid var(--line-strong); border-radius:4px; padding:7px 10px; cursor:pointer;
+  }
+
+  .chartbox{ position:relative; width:100%; }
+
+  .trophy-card{
+    background:linear-gradient(180deg, var(--panel2), var(--panel)); border:1px solid var(--gold-dim);
+    border-radius:8px; padding:20px; text-align:center;
+  }
+  .trophy-card .season{ font-family:var(--font-mono); font-size:11px; color:var(--muted); letter-spacing:.1em; text-transform:uppercase;}
+  .trophy-card .player{ font-family:var(--font-display); font-size:34px; color:var(--gold); margin:6px 0 2px; line-height:1;}
+  .trophy-card .runs{ color:var(--cream); font-size:14px;}
+
+  .stat-pill{
+    display:inline-block; font-family:var(--font-mono); font-size:11px; color:var(--green-led);
+    background:rgba(95,191,122,0.1); border:1px solid rgba(95,191,122,0.3); border-radius:20px; padding:3px 10px;
+  }
+
+  footer{
+    margin-top:60px; padding-top:20px; border-top:1px solid var(--line);
+    color:var(--muted); font-family:var(--font-mono); font-size:11px; letter-spacing:.05em;
+    display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="eyebrow">Match data · 2008 – 2024</p>
+  <h1>IPL Scoreboard</h1>
+  <p class="sub">Fifteen queries across <b id="hdr-matches">—</b> matches and <b id="hdr-balls">—</b> deliveries, turned into one read of who wins, who scores, and who decides matches at the toss.</p>
+
+  <div class="kpi-row" id="kpiRow"></div>
+
+  <!-- 1: Team wins -->
+  <section>
+    <div class="sec-head"><span class="sec-num">01</span><h2>Team wins, all-time</h2></div>
+    <p class="sec-desc">Every franchise's win count across all seasons played, including rebrands (Delhi Daredevils → Capitals, Kings XI → Punjab Kings, RCB's 2024 rename).</p>
+    <div class="card">
+      <div class="chartbox" style="height:460px;">
+        <canvas id="chartTeamWins" role="img" aria-label="Bar chart of total match wins by IPL team, Mumbai Indians highest"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2: Batting leaders -->
+  <section>
+    <div class="sec-head"><span class="sec-num">02</span><h2>Batting leaders</h2></div>
+    <p class="sec-desc">Career totals across all seasons. Strike rate is restricted to players with at least 500 balls faced, to keep small samples out.</p>
+    <div class="card">
+      <div class="tabbar" id="battingTabs">
+        <button class="tabbtn active" data-k="top_run_scorers" data-lbl="Runs">Most runs</button>
+        <button class="tabbtn" data-k="top_sixes" data-lbl="Sixes">Most sixes</button>
+        <button class="tabbtn" data-k="top_fours" data-lbl="Fours">Most fours</button>
+        <button class="tabbtn" data-k="top_strike_rates" data-lbl="Strike rate" data-sr="1">Best strike rate (500+ balls)</button>
+      </div>
+      <div class="chartbox" style="height:400px;">
+        <canvas id="chartBatting" role="img" aria-label="Horizontal bar chart of top batting leaders, switches by category"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3: Bowling leaders -->
+  <section>
+    <div class="sec-head"><span class="sec-num">03</span><h2>Bowling leaders</h2></div>
+    <p class="sec-desc">Wicket-takers exclude run outs and other non-bowler dismissals. Economy rate is capped to bowlers with 300+ balls delivered.</p>
+    <div class="grid2">
+      <div class="card">
+        <h3>Most wickets</h3>
+        <div class="chartbox" style="height:340px;">
+          <canvas id="chartWickets" role="img" aria-label="Horizontal bar chart of top 10 wicket takers"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Table — best economy rate (min. 300 balls)</h3>
+        <table id="tblEconomy"></table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4: Match records -->
+  <section>
+    <div class="sec-head"><span class="sec-num">04</span><h2>Match records</h2></div>
+    <p class="sec-desc">Standout single-innings and single-match performances.</p>
+    <div class="grid3">
+      <div class="card">
+        <h3>Highest individual scores</h3>
+        <table id="tblHighScores"></table>
+      </div>
+      <div class="card">
+        <h3>Highest team totals</h3>
+        <table id="tblTeamHigh"></table>
+      </div>
+      <div class="card">
+        <h3>Most player-of-the-match awards</h3>
+        <table id="tblPOM"></table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5: Toss -->
+  <section>
+    <div class="sec-head"><span class="sec-num">05</span><h2>Does the toss matter?</h2></div>
+    <p class="sec-desc">Win rate for the toss winner, split by what they chose to do — and which teams convert winning the toss into winning the match most often.</p>
+    <div class="grid2">
+      <div class="card">
+        <h3>Toss decision → match win rate</h3>
+        <div class="chartbox" style="height:220px;">
+          <canvas id="chartToss" role="img" aria-label="Bar chart comparing win rate when choosing to bat versus field first after winning the toss"></canvas>
+        </div>
+        <p style="font-size:12.5px;color:var(--muted);margin-top:10px;">Choosing to field first after winning the toss wins more often — a chase-friendly pattern that's grown stronger in the dew-heavy, bigger-bat era.</p>
+      </div>
+      <div class="card">
+        <h3>Toss → match conversion, by team</h3>
+        <table id="tblTossConv"></table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6: Team scoring -->
+  <section>
+    <div class="sec-head"><span class="sec-num">06</span><h2>Team scoring power</h2></div>
+    <p class="sec-desc">Average runs per innings batted, for franchises with at least 20 innings on record — newer teams like Gujarat Titans lead on a smaller sample.</p>
+    <div class="card">
+      <div class="chartbox" style="height:420px;">
+        <canvas id="chartAvgScore" role="img" aria-label="Horizontal bar chart of average team score per innings by franchise"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7: Season explorer -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-num">07</span><h2>Season by season</h2>
+      <select id="seasonSelect" style="margin-left:auto;"></select>
+    </div>
+    <p class="sec-desc">Pick a season to see the win table and that year's leading run-scorer.</p>
+    <div class="grid2">
+      <div class="card">
+        <h3>Wins by team, selected season</h3>
+        <div class="chartbox" style="height:320px;">
+          <canvas id="chartSeasonWins" role="img" aria-label="Bar chart of wins by team for the selected season"></canvas>
+        </div>
+      </div>
+      <div class="trophy-card" id="trophyCard">
+        <div class="season" id="trophySeason">—</div>
+        <div class="player" id="trophyPlayer">—</div>
+        <div class="runs" id="trophyRuns">— runs</div>
+        <p style="font-size:12px;color:var(--muted);margin-top:14px;">Orange Cap — leading run-scorer of the season</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="seam"></div>
+  <footer>
+    <span>Source · matches.csv + deliveries.csv</span>
+    <span id="footStamp">15 queries · built with pandas</span>
+  </footer>
+</div>
+
+<script id="data" type="application/json">
+{
+  "team_wins": [
+    {
+      "winner": "Mumbai Indians",
+      "total_wins": 144
+    },
+    {
+      "winner": "Chennai Super Kings",
+      "total_wins": 138
+    },
+    {
+      "winner": "Kolkata Knight Riders",
+      "total_wins": 131
+    },
+    {
+      "winner": "Royal Challengers Bangalore",
+      "total_wins": 116
+    },
+    {
+      "winner": "Rajasthan Royals",
+      "total_wins": 112
+    },
+    {
+      "winner": "Kings XI Punjab",
+      "total_wins": 88
+    },
+    {
+      "winner": "Sunrisers Hyderabad",
+      "total_wins": 88
+    },
+    {
+      "winner": "Delhi Daredevils",
+      "total_wins": 67
+    },
+    {
+      "winner": "Delhi Capitals",
+      "total_wins": 48
+    },
+    {
+      "winner": "Deccan Chargers",
+      "total_wins": 29
+    },
+    {
+      "winner": "Gujarat Titans",
+      "total_wins": 28
+    },
+    {
+      "winner": "Lucknow Super Giants",
+      "total_wins": 24
+    },
+    {
+      "winner": "Punjab Kings",
+      "total_wins": 24
+    },
+    {
+      "winner": "Gujarat Lions",
+      "total_wins": 13
+    },
+    {
+      "winner": "Pune Warriors",
+      "total_wins": 12
+    },
+    {
+      "winner": "Rising Pune Supergiant",
+      "total_wins": 10
+    },
+    {
+      "winner": "Royal Challengers Bengaluru",
+      "total_wins": 7
+    },
+    {
+      "winner": "Kochi Tuskers Kerala",
+      "total_wins": 6
+    },
+    {
+      "winner": "Rising Pune Supergiants",
+      "total_wins": 5
+    }
+  ],
+  "top_run_scorers": [
+    {
+      "batter": "V Kohli",
+      "total_runs": 8014
+    },
+    {
+      "batter": "S Dhawan",
+      "total_runs": 6769
+    },
+    {
+      "batter": "RG Sharma",
+      "total_runs": 6630
+    },
+    {
+      "batter": "DA Warner",
+      "total_runs": 6567
+    },
+    {
+      "batter": "SK Raina",
+      "total_runs": 5536
+    },
+    {
+      "batter": "MS Dhoni",
+      "total_runs": 5243
+    },
+    {
+      "batter": "AB de Villiers",
+      "total_runs": 5181
+    },
+    {
+      "batter": "CH Gayle",
+      "total_runs": 4997
+    },
+    {
+      "batter": "RV Uthappa",
+      "total_runs": 4954
+    },
+    {
+      "batter": "KD Karthik",
+      "total_runs": 4843
+    }
+  ],
+  "top_wicket_takers": [
+    {
+      "bowler": "YS Chahal",
+      "total_wickets": 205
+    },
+    {
+      "bowler": "PP Chawla",
+      "total_wickets": 192
+    },
+    {
+      "bowler": "DJ Bravo",
+      "total_wickets": 183
+    },
+    {
+      "bowler": "B Kumar",
+      "total_wickets": 181
+    },
+    {
+      "bowler": "SP Narine",
+      "total_wickets": 180
+    },
+    {
+      "bowler": "R Ashwin",
+      "total_wickets": 180
+    },
+    {
+      "bowler": "A Mishra",
+      "total_wickets": 174
+    },
+    {
+      "bowler": "SL Malinga",
+      "total_wickets": 170
+    },
+    {
+      "bowler": "JJ Bumrah",
+      "total_wickets": 168
+    },
+    {
+      "bowler": "RA Jadeja",
+      "total_wickets": 160
+    }
+  ],
+  "highest_individual_scores": [
+    {
+      "match_id": 598027,
+      "batter": "CH Gayle",
+      "individual_score": 175
+    },
+    {
+      "match_id": 335982,
+      "batter": "BB McCullum",
+      "individual_score": 158
+    },
+    {
+      "match_id": 1304112,
+      "batter": "Q de Kock",
+      "individual_score": 140
+    },
+    {
+      "match_id": 829795,
+      "batter": "AB de Villiers",
+      "individual_score": 133
+    },
+    {
+      "match_id": 1216510,
+      "batter": "KL Rahul",
+      "individual_score": 132
+    },
+    {
+      "match_id": 980987,
+      "batter": "AB de Villiers",
+      "individual_score": 129
+    },
+    {
+      "match_id": 1370352,
+      "batter": "Shubman Gill",
+      "individual_score": 129
+    },
+    {
+      "match_id": 548372,
+      "batter": "CH Gayle",
+      "individual_score": 128
+    },
+    {
+      "match_id": 1136602,
+      "batter": "RR Pant",
+      "individual_score": 128
+    },
+    {
+      "match_id": 419137,
+      "batter": "M Vijay",
+      "individual_score": 127
+    }
+  ],
+  "top_sixes": [
+    {
+      "batter": "CH Gayle",
+      "total_sixes": 359
+    },
+    {
+      "batter": "RG Sharma",
+      "total_sixes": 281
+    },
+    {
+      "batter": "V Kohli",
+      "total_sixes": 273
+    },
+    {
+      "batter": "AB de Villiers",
+      "total_sixes": 253
+    },
+    {
+      "batter": "MS Dhoni",
+      "total_sixes": 252
+    },
+    {
+      "batter": "DA Warner",
+      "total_sixes": 236
+    },
+    {
+      "batter": "KA Pollard",
+      "total_sixes": 224
+    },
+    {
+      "batter": "AD Russell",
+      "total_sixes": 209
+    },
+    {
+      "batter": "SV Samson",
+      "total_sixes": 206
+    },
+    {
+      "batter": "SK Raina",
+      "total_sixes": 204
+    }
+  ],
+  "top_fours": [
+    {
+      "batter": "S Dhawan",
+      "total_fours": 768
+    },
+    {
+      "batter": "V Kohli",
+      "total_fours": 708
+    },
+    {
+      "batter": "DA Warner",
+      "total_fours": 663
+    },
+    {
+      "batter": "RG Sharma",
+      "total_fours": 599
+    },
+    {
+      "batter": "SK Raina",
+      "total_fours": 506
+    },
+    {
+      "batter": "G Gambhir",
+      "total_fours": 492
+    },
+    {
+      "batter": "RV Uthappa",
+      "total_fours": 481
+    },
+    {
+      "batter": "AM Rahane",
+      "total_fours": 479
+    },
+    {
+      "batter": "KD Karthik",
+      "total_fours": 466
+    },
+    {
+      "batter": "F du Plessis",
+      "total_fours": 422
+    }
+  ],
+  "top_strike_rates": [
+    {
+      "batter": "AD Russell",
+      "total_runs": 2488,
+      "balls_faced": 1515,
+      "strike_rate": 164.22
+    },
+    {
+      "batter": "H Klaasen",
+      "total_runs": 993,
+      "balls_faced": 613,
+      "strike_rate": 161.99
+    },
+    {
+      "batter": "SP Narine",
+      "total_runs": 1534,
+      "balls_faced": 984,
+      "strike_rate": 155.89
+    },
+    {
+      "batter": "N Pooran",
+      "total_runs": 1769,
+      "balls_faced": 1143,
+      "strike_rate": 154.77
+    },
+    {
+      "batter": "LS Livingstone",
+      "total_runs": 939,
+      "balls_faced": 609,
+      "strike_rate": 154.19
+    },
+    {
+      "batter": "GJ Maxwell",
+      "total_runs": 2772,
+      "balls_faced": 1842,
+      "strike_rate": 150.49
+    },
+    {
+      "batter": "RM Patidar",
+      "total_runs": 799,
+      "balls_faced": 534,
+      "strike_rate": 149.63
+    },
+    {
+      "batter": "Abhishek Sharma",
+      "total_runs": 1377,
+      "balls_faced": 925,
+      "strike_rate": 148.86
+    },
+    {
+      "batter": "V Sehwag",
+      "total_runs": 2728,
+      "balls_faced": 1833,
+      "strike_rate": 148.83
+    },
+    {
+      "batter": "AB de Villiers",
+      "total_runs": 5181,
+      "balls_faced": 3487,
+      "strike_rate": 148.58
+    }
+  ],
+  "top_economy_rates": [
+    {
+      "bowler": "S Gopal",
+      "runs_conceded": 18,
+      "balls_bowled": 1000,
+      "economy_rate": 0.11
+    },
+    {
+      "bowler": "R Sharma",
+      "runs_conceded": 21,
+      "balls_bowled": 935,
+      "economy_rate": 0.13
+    },
+    {
+      "bowler": "MM Ali",
+      "runs_conceded": 19,
+      "balls_bowled": 770,
+      "economy_rate": 0.15
+    },
+    {
+      "bowler": "J Yadav",
+      "runs_conceded": 10,
+      "balls_bowled": 398,
+      "economy_rate": 0.15
+    },
+    {
+      "bowler": "Washington Sundar",
+      "runs_conceded": 26,
+      "balls_bowled": 1064,
+      "economy_rate": 0.15
+    },
+    {
+      "bowler": "PWH de Silva",
+      "runs_conceded": 17,
+      "balls_bowled": 557,
+      "economy_rate": 0.18
+    },
+    {
+      "bowler": "DL Vettori",
+      "runs_conceded": 23,
+      "balls_bowled": 785,
+      "economy_rate": 0.18
+    },
+    {
+      "bowler": "Yuvraj Singh",
+      "runs_conceded": 27,
+      "balls_bowled": 882,
+      "economy_rate": 0.18
+    },
+    {
+      "bowler": "Mohammad Nabi",
+      "runs_conceded": 13,
+      "balls_bowled": 419,
+      "economy_rate": 0.19
+    },
+    {
+      "bowler": "MM Sharma",
+      "runs_conceded": 78,
+      "balls_bowled": 2308,
+      "economy_rate": 0.2
+    }
+  ],
+  "top_pom_awards": [
+    {
+      "player_of_match": "AB de Villiers",
+      "awards": 25
+    },
+    {
+      "player_of_match": "CH Gayle",
+      "awards": 22
+    },
+    {
+      "player_of_match": "RG Sharma",
+      "awards": 19
+    },
+    {
+      "player_of_match": "DA Warner",
+      "awards": 18
+    },
+    {
+      "player_of_match": "V Kohli",
+      "awards": 18
+    },
+    {
+      "player_of_match": "MS Dhoni",
+      "awards": 17
+    },
+    {
+      "player_of_match": "YK Pathan",
+      "awards": 16
+    },
+    {
+      "player_of_match": "RA Jadeja",
+      "awards": 16
+    },
+    {
+      "player_of_match": "SR Watson",
+      "awards": 16
+    },
+    {
+      "player_of_match": "SP Narine",
+      "awards": 15
+    }
+  ],
+  "toss_decision_vs_result": [
+    {
+      "toss_decision": "field",
+      "total_matches": 700,
+      "toss_winner_match_wins": 377,
+      "win_percentage": 53.86
+    },
+    {
+      "toss_decision": "bat",
+      "total_matches": 390,
+      "toss_winner_match_wins": 177,
+      "win_percentage": 45.38
+    }
+  ],
+  "toss_conversion": [
+    {
+      "toss_winner": "Rising Pune Supergiant",
+      "toss_wins": 6,
+      "match_wins_after_toss": 5,
+      "conversion_percentage": 83.33
+    },
+    {
+      "toss_winner": "Gujarat Lions",
+      "toss_wins": 15,
+      "match_wins_after_toss": 10,
+      "conversion_percentage": 66.67
+    },
+    {
+      "toss_winner": "Gujarat Titans",
+      "toss_wins": 22,
+      "match_wins_after_toss": 14,
+      "conversion_percentage": 63.64
+    },
+    {
+      "toss_winner": "Chennai Super Kings",
+      "toss_wins": 121,
+      "match_wins_after_toss": 75,
+      "conversion_percentage": 61.98
+    },
+    {
+      "toss_winner": "Kolkata Knight Riders",
+      "toss_wins": 122,
+      "match_wins_after_toss": 68,
+      "conversion_percentage": 55.74
+    },
+    {
+      "toss_winner": "Mumbai Indians",
+      "toss_wins": 143,
+      "match_wins_after_toss": 78,
+      "conversion_percentage": 54.55
+    },
+    {
+      "toss_winner": "Lucknow Super Giants",
+      "toss_wins": 19,
+      "match_wins_after_toss": 10,
+      "conversion_percentage": 52.63
+    },
+    {
+      "toss_winner": "Delhi Capitals",
+      "toss_wins": 50,
+      "match_wins_after_toss": 26,
+      "conversion_percentage": 52.0
+    },
+    {
+      "toss_winner": "Royal Challengers Bangalore",
+      "toss_wins": 112,
+      "match_wins_after_toss": 57,
+      "conversion_percentage": 50.89
+    },
+    {
+      "toss_winner": "Rajasthan Royals",
+      "toss_wins": 118,
+      "match_wins_after_toss": 60,
+      "conversion_percentage": 50.85
+    },
+    {
+      "toss_winner": "Kochi Tuskers Kerala",
+      "toss_wins": 8,
+      "match_wins_after_toss": 4,
+      "conversion_percentage": 50.0
+    },
+    {
+      "toss_winner": "Royal Challengers Bengaluru",
+      "toss_wins": 8,
+      "match_wins_after_toss": 4,
+      "conversion_percentage": 50.0
+    },
+    {
+      "toss_winner": "Delhi Daredevils",
+      "toss_wins": 79,
+      "match_wins_after_toss": 35,
+      "conversion_percentage": 44.3
+    },
+    {
+      "toss_winner": "Deccan Chargers",
+      "toss_wins": 43,
+      "match_wins_after_toss": 19,
+      "conversion_percentage": 44.19
+    },
+    {
+      "toss_winner": "Sunrisers Hyderabad",
+      "toss_wins": 88,
+      "match_wins_after_toss": 38,
+      "conversion_percentage": 43.18
+    },
+    {
+      "toss_winner": "Rising Pune Supergiants",
+      "toss_wins": 7,
+      "match_wins_after_toss": 3,
+      "conversion_percentage": 42.86
+    },
+    {
+      "toss_winner": "Kings XI Punjab",
+      "toss_wins": 85,
+      "match_wins_after_toss": 36,
+      "conversion_percentage": 42.35
+    },
+    {
+      "toss_winner": "Punjab Kings",
+      "toss_wins": 24,
+      "match_wins_after_toss": 9,
+      "conversion_percentage": 37.5
+    },
+    {
+      "toss_winner": "Pune Warriors",
+      "toss_wins": 20,
+      "match_wins_after_toss": 3,
+      "conversion_percentage": 15.0
+    }
+  ],
+  "highest_team_scores": [
+    {
+      "batting_team": "Sunrisers Hyderabad",
+      "highest_score": 287
+    },
+    {
+      "batting_team": "Kolkata Knight Riders",
+      "highest_score": 272
+    },
+    {
+      "batting_team": "Royal Challengers Bangalore",
+      "highest_score": 263
+    },
+    {
+      "batting_team": "Royal Challengers Bengaluru",
+      "highest_score": 262
+    },
+    {
+      "batting_team": "Punjab Kings",
+      "highest_score": 262
+    },
+    {
+      "batting_team": "Delhi Capitals",
+      "highest_score": 257
+    },
+    {
+      "batting_team": "Lucknow Super Giants",
+      "highest_score": 257
+    },
+    {
+      "batting_team": "Mumbai Indians",
+      "highest_score": 247
+    },
+    {
+      "batting_team": "Chennai Super Kings",
+      "highest_score": 246
+    },
+    {
+      "batting_team": "Gujarat Titans",
+      "highest_score": 233
+    },
+    {
+      "batting_team": "Kings XI Punjab",
+      "highest_score": 232
+    },
+    {
+      "batting_team": "Delhi Daredevils",
+      "highest_score": 231
+    },
+    {
+      "batting_team": "Rajasthan Royals",
+      "highest_score": 226
+    },
+    {
+      "batting_team": "Deccan Chargers",
+      "highest_score": 214
+    },
+    {
+      "batting_team": "Gujarat Lions",
+      "highest_score": 208
+    },
+    {
+      "batting_team": "Rising Pune Supergiants",
+      "highest_score": 195
+    },
+    {
+      "batting_team": "Pune Warriors",
+      "highest_score": 192
+    },
+    {
+      "batting_team": "Rising Pune Supergiant",
+      "highest_score": 187
+    },
+    {
+      "batting_team": "Kochi Tuskers Kerala",
+      "highest_score": 184
+    }
+  ],
+  "avg_team_score": [
+    {
+      "batting_team": "Gujarat Titans",
+      "average_score": 172.38,
+      "innings_played": 45
+    },
+    {
+      "batting_team": "Lucknow Super Giants",
+      "average_score": 170.68,
+      "innings_played": 44
+    },
+    {
+      "batting_team": "Punjab Kings",
+      "average_score": 170.29,
+      "innings_played": 56
+    },
+    {
+      "batting_team": "Chennai Super Kings",
+      "average_score": 162.31,
+      "innings_played": 238
+    },
+    {
+      "batting_team": "Mumbai Indians",
+      "average_score": 158.56,
+      "innings_played": 266
+    },
+    {
+      "batting_team": "Delhi Capitals",
+      "average_score": 158.51,
+      "innings_played": 94
+    },
+    {
+      "batting_team": "Gujarat Lions",
+      "average_score": 156.84,
+      "innings_played": 31
+    },
+    {
+      "batting_team": "Sunrisers Hyderabad",
+      "average_score": 156.3,
+      "innings_played": 186
+    },
+    {
+      "batting_team": "Rajasthan Royals",
+      "average_score": 155.82,
+      "innings_played": 223
+    },
+    {
+      "batting_team": "Royal Challengers Bangalore",
+      "average_score": 155.11,
+      "innings_played": 243
+    },
+    {
+      "batting_team": "Kolkata Knight Riders",
+      "average_score": 154.24,
+      "innings_played": 255
+    },
+    {
+      "batting_team": "Kings XI Punjab",
+      "average_score": 154.17,
+      "innings_played": 195
+    },
+    {
+      "batting_team": "Deccan Chargers",
+      "average_score": 152.84,
+      "innings_played": 75
+    },
+    {
+      "batting_team": "Delhi Daredevils",
+      "average_score": 149.98,
+      "innings_played": 162
+    },
+    {
+      "batting_team": "Pune Warriors",
+      "average_score": 141.29,
+      "innings_played": 45
+    }
+  ],
+  "season_wise_wins": [
+    {
+      "season": "2007/08",
+      "winner": "Rajasthan Royals",
+      "wins": 13
+    },
+    {
+      "season": "2007/08",
+      "winner": "Kings XI Punjab",
+      "wins": 10
+    },
+    {
+      "season": "2007/08",
+      "winner": "Chennai Super Kings",
+      "wins": 9
+    },
+    {
+      "season": "2007/08",
+      "winner": "Delhi Daredevils",
+      "wins": 7
+    },
+    {
+      "season": "2007/08",
+      "winner": "Mumbai Indians",
+      "wins": 7
+    },
+    {
+      "season": "2007/08",
+      "winner": "Kolkata Knight Riders",
+      "wins": 6
+    },
+    {
+      "season": "2007/08",
+      "winner": "Royal Challengers Bangalore",
+      "wins": 4
+    },
+    {
+      "season": "2007/08",
+      "winner": "Deccan Chargers",
+      "wins": 2
+    },
+    {
+      "season": "2009",
+      "winner": "Delhi Daredevils",
+      "wins": 10
+    },
+    {
+      "season": "2009",
+      "winner": "Deccan Chargers",
+      "wins": 9
+    },
+    {
+      "season": "2009",
+      "winner": "Royal Challengers Bangalore",
+      "wins": 9
+    },
+    {
+      "season": "2009",
+      "winner": "Chennai Super Kings",
+      "wins": 8
+    },
+    {
+      "season": "2009",
+      "winner": "Kings XI Punjab",
+      "wins": 7
+    },
+    {
+      "season": "2009",
+      "winner": "Rajasthan Royals",
+      "wins": 6
+    },
+    {
+      "season": "2009",
+      "winner": "Mumbai Indians",
+      "wins": 5
+    },
+    {
+      "season": "2009",
+      "winner": "Kolkata Knight Riders",
+      "wins": 3
+    },
+    {
+      "season": "2009/10",
+      "winner": "Mumbai Indians",
+      "wins": 11
+    },
+    {
+      "season": "2009/10",
+      "winner": "Chennai Super Kings",
+      "wins": 9
+    },
+    {
+      "season": "2009/10",
+      "winner": "Deccan Chargers",
+      "wins": 8
+    },
+    {
+      "season": "2009/10",
+      "winner": "Royal Challengers Bangalore",
+      "wins": 8
+    },
+    {
+      "season": "2009/10",
+      "winner": "Delhi Daredevils",
+      "wins": 7
+    },
+    {
+      "season": "2009/10",
+      "winner": "Kolkata Knight Riders",
+      "wins": 7
+    },
+    {
+      "season": "2009/10",
+      "winner": "Rajasthan Royals",
+      "wins": 6
+    },
+    {
+      "season": "2009/10",
+      "winner": "Kings XI Punjab",
+      "wins": 4
+    },
+    {
+      "season": "2011",
+      "winner": "Chennai Super Kings",
+      "wins": 11
+    },
+    {
+      "season": "2011",
+      "winner": "Mumbai Indians",
+      "wins": 10
+    },
+    {
+      "season": "2011",
+      "winner": "Royal Challengers Bangalore",
+      "wins": 10
+    },
+    {
+      "season": "2011",
+      "winner": "Kolkata Knight Riders",
+      "wins": 8
+    },
+    {
+      "season": "2011",
+      "winner": "Kings XI Punjab",
+      "wins": 7
+    },
+    {
+      "season": "2011",
+      "winner": "Deccan Chargers",
+      "wins": 6
+    },
+    {
+      "season": "2011",
+      "winner": "Kochi Tuskers Kerala",
+      "wins": 6
+    },
+    {
+      "season": "2011",
+      "winner": "Rajasthan Royals",
+      "wins": 6
+    },
+    {
+      "season": "2011",
+      "winner": "Delhi Daredevils",
+      "wins": 4
+    },
+    {
+      "season": "2011",
+      "winner": "Pune Warriors",
+      "wins": 4
+    },
+    {
+      "season": "2012",
+      "winner": "Kolkata Knight Riders",
+      "wins": 12
+    },
+    {
+      "season": "2012",
+      "winner": "Delhi Daredevils",
+      "wins": 11
+    },
+    {
+      "season": "2012",
+      "winner": "Chennai Super Kings",
+      "wins": 10
+    },
+    {
+      "season": "2012",
+      "winner": "Mumbai Indians",
+      "wins": 10
+    },
+    {
+      "season": "2012",
+      "winner": "Kings XI Punjab",
+      "wins": 8
+    },
+    {
+      "season": "2012",
+      "winner": "Royal Challengers Bangalore",
+      "wins": 8
+    },
+    {
+      "season": "2012",
+      "winner": "Rajasthan Royals",
+      "wins": 7
+    },
+    {
+      "season": "2012",
+      "winner": "Deccan Chargers",
+      "wins": 4
+    },
+    {
+      "season": "2012",
+      "winner": "Pune Warriors",
+      "wins": 4
+    },
+    {
+      "season": "2013",
+      "winner": "Mumbai Indians",
+      "wins": 13
+    },
+    {
+      "season": "2013",
+      "winner": "Chennai Super Kings",
+      "wins": 12
+    },
+    {
+      "season": "2013",
+      "winner": "Rajasthan Royals",
+      "wins": 11
+    },
+    {
+      "season": "2013",
+      "winner": "Sunrisers Hyderabad",
+      "wins": 10
+    },
+    {
+      "season": "2013",
+      "winner": "Royal Challengers Bangalore",
+      "wins": 9
+    },
+    {
+      "season": "2013",
+      "winner": "Kings XI Punjab",
+      "wins": 8
+    },
+    {
+      "season": "2013",
+      "winner": "Kolkata Knight Riders",
+      "wins": 6
+    },
+    {
+      "season": "2013",
+      "winner": "Pune Warriors",
+      "wins": 4
+    },
+    {
+      "season": "2013",
+      "winner": "Delhi Daredevils",
+      "wins": 3
+    },
+    {
+      "season": "2014",
+      "winner": "Kings XI Punjab",
+      "wins": 12
+    },
+    {
+      "season": "2014",
+      "winner": "Kolkata Knight Riders",
+      "wins": 11
+    },
+    {
+      "season": "2014",
+      "winner": "Chennai Super Kings",
+      "wins": 10
+    },
+    {
+      "season": "2014",
+      "winner": "Mumbai Indians",
+      "wins": 7
+    },
+    {
+      "season": "2014",
+      "winner": "Rajasthan Royals",
+      "wins": 7
+    },
+    {
+      "season": "2014",
+      "winner": "Sunrisers Hyderabad",
+      "wins": 6
+    },
+    {
+      "season": "2014",
+      "winner": "Royal Challengers Bangalore",
+      "wins": 5
+    },
+    {
+      "season": "2014",
+      "winner": "Delhi Daredevils",
+      "wins": 2
+    },
+    {
+      "season": "2015",
+      "winner": "Chennai Super Kings",
+      "wins": 10
+    },
+    {
+      "season": "2015",
+      "winner": "Mumbai Indians",
+      "wins": 10
+    },
+    {
+      "season": "2015",
+      "winner": "Royal Challengers Bangalore",
+      "wins": 8
+    },
+    {
+      "season": "2015",
+      "winner": "Kolkata Knight Riders",
+      "wins": 7
+    },
+    {
+      "season": "2015",
+      "winner": "Rajasthan Royals",
+      "wins": 7
+    },
+    {
+      "season": "2015",
+      "winner": "Sunrisers Hyderabad",
+      "wins": 7
+    },
+    {
+      "season": "2015",
+      "winner": "Delhi Daredevils",
+      "wins": 5
+    },
+    {
+      "season": "2015",
+      "winner": "Kings XI Punjab",
+      "wins": 3
+    },
+    {
+      "season": "2016",
+      "winner": "Sunrisers Hyderabad",
+      "wins": 11
+    },
+    {
+      "season": "2016",
+      "winner": "Gujarat Lions",
+      "wins": 9
+    },
+    {
+      "season": "2016",
+      "winner": "Royal Challengers Bangalore",
+      "wins": 9
+    },
+    {
+      "season": "2016",
+      "winner": "Kolkata Knight Riders",
+      "wins": 8
+    },
+    {
+      "season": "2016",
+      "winner": "Delhi Daredevils",
+      "wins": 7
+    },
+    {
+      "season": "2016",
+      "winner": "Mumbai Indians",
+      "wins": 7
+    },
+    {
+      "season": "2016",
+      "winner": "Rising Pune Supergiants",
+      "wins": 5
+    },
+    {
+      "season": "2016",
+      "winner": "Kings XI Punjab",
+      "wins": 4
+    },
+    {
+      "season": "2017",
+      "winner": "Mumbai Indians",
+      "wins": 12
+    },
+    {
+      "season": "2017",
+      "winner": "Rising Pune Supergiant",
+      "wins": 10
+    },
+    {
+      "season": "2017",
+      "winner": "Kolkata Knight Riders",
+      "wins": 9
+    },
+    {
+      "season": "2017",
+      "winner": "Sunrisers Hyderabad",
+      "wins": 8
+    },
+    {
+      "season": "2017",
+      "winner": "Kings XI Punjab",
+      "wins": 7
+    },
+    {
+      "season": "2017",
+      "winner": "Delhi Daredevils",
+      "wins": 6
+    },
+    {
+      "season": "2017",
+      "winner": "Gujarat Lions",
+      "wins": 4
+    },
+    {
+      "season": "2017",
+      "winner": "Royal Challengers Bangalore",
+      "wins": 3
+    },
+    {
+      "season": "2018",
+      "winner": "Chennai Super Kings",
+      "wins": 11
+    },
+    {
+      "season": "2018",
+      "winner": "Sunrisers Hyderabad",
+      "wins": 10
+    },
+    {
+      "season": "2018",
+      "winner": "Kolkata Knight Riders",
+      "wins": 9
+    },
+    {
+      "season": "2018",
+      "winner": "Rajasthan Royals",
+      "wins": 7
+    },
+    {
+      "season": "2018",
+      "winner": "Kings XI Punjab",
+      "wins": 6
+    },
+    {
+      "season": "2018",
+      "winner": "Mumbai Indians",
+      "wins": 6
+    },
+    {
+      "season": "2018",
+      "winner": "Royal Challengers Bangalore",
+      "wins": 6
+    },
+    {
+      "season": "2018",
+      "winner": "Delhi Daredevils",
+      "wins": 5
+    },
+    {
+      "season": "2019",
+      "winner": "Mumbai Indians",
+      "wins": 11
+    },
+    {
+      "season": "2019",
+      "winner": "Chennai Super Kings",
+      "wins": 10
+    },
+    {
+      "season": "2019",
+      "winner": "Delhi Capitals",
+      "wins": 10
+    },
+    {
+      "season": "2019",
+      "winner": "Kings XI Punjab",
+      "wins": 6
+    },
+    {
+      "season": "2019",
+      "winner": "Kolkata Knight Riders",
+      "wins": 6
+    },
+    {
+      "season": "2019",
+      "winner": "Sunrisers Hyderabad",
+      "wins": 6
+    },
+    {
+      "season": "2019",
+      "winner": "Rajasthan Royals",
+      "wins": 5
+    },
+    {
+      "season": "2019",
+      "winner": "Royal Challengers Bangalore",
+      "wins": 5
+    },
+    {
+      "season": "2020/21",
+      "winner": "Mumbai Indians",
+      "wins": 11
+    },
+    {
+      "season": "2020/21",
+      "winner": "Delhi Capitals",
+      "wins": 9
+    },
+    {
+      "season": "2020/21",
+      "winner": "Sunrisers Hyderabad",
+      "wins": 8
+    },
+    {
+      "season": "2020/21",
+      "winner": "Kolkata Knight Riders",
+      "wins": 7
+    },
+    {
+      "season": "2020/21",
+      "winner": "Royal Challengers Bangalore",
+      "wins": 7
+    },
+    {
+      "season": "2020/21",
+      "winner": "Chennai Super Kings",
+      "wins": 6
+    },
+    {
+      "season": "2020/21",
+      "winner": "Kings XI Punjab",
+      "wins": 6
+    },
+    {
+      "season": "2020/21",
+      "winner": "Rajasthan Royals",
+      "wins": 6
+    },
+    {
+      "season": "2021",
+      "winner": "Chennai Super Kings",
+      "wins": 11
+    },
+    {
+      "season": "2021",
+      "winner": "Delhi Capitals",
+      "wins": 10
+    },
+    {
+      "season": "2021",
+      "winner": "Kolkata Knight Riders",
+      "wins": 9
+    },
+    {
+      "season": "2021",
+      "winner": "Royal Challengers Bangalore",
+      "wins": 9
+    },
+    {
+      "season": "2021",
+      "winner": "Mumbai Indians",
+      "wins": 7
+    },
+    {
+      "season": "2021",
+      "winner": "Punjab Kings",
+      "wins": 6
+    },
+    {
+      "season": "2021",
+      "winner": "Rajasthan Royals",
+      "wins": 5
+    },
+    {
+      "season": "2021",
+      "winner": "Sunrisers Hyderabad",
+      "wins": 3
+    },
+    {
+      "season": "2022",
+      "winner": "Gujarat Titans",
+      "wins": 12
+    },
+    {
+      "season": "2022",
+      "winner": "Rajasthan Royals",
+      "wins": 10
+    },
+    {
+      "season": "2022",
+      "winner": "Lucknow Super Giants",
+      "wins": 9
+    },
+    {
+      "season": "2022",
+      "winner": "Royal Challengers Bangalore",
+      "wins": 9
+    },
+    {
+      "season": "2022",
+      "winner": "Delhi Capitals",
+      "wins": 7
+    },
+    {
+      "season": "2022",
+      "winner": "Punjab Kings",
+      "wins": 7
+    },
+    {
+      "season": "2022",
+      "winner": "Kolkata Knight Riders",
+      "wins": 6
+    },
+    {
+      "season": "2022",
+      "winner": "Sunrisers Hyderabad",
+      "wins": 6
+    },
+    {
+      "season": "2022",
+      "winner": "Chennai Super Kings",
+      "wins": 4
+    },
+    {
+      "season": "2022",
+      "winner": "Mumbai Indians",
+      "wins": 4
+    },
+    {
+      "season": "2023",
+      "winner": "Gujarat Titans",
+      "wins": 11
+    },
+    {
+      "season": "2023",
+      "winner": "Chennai Super Kings",
+      "wins": 10
+    },
+    {
+      "season": "2023",
+      "winner": "Mumbai Indians",
+      "wins": 9
+    },
+    {
+      "season": "2023",
+      "winner": "Lucknow Super Giants",
+      "wins": 8
+    },
+    {
+      "season": "2023",
+      "winner": "Rajasthan Royals",
+      "wins": 7
+    },
+    {
+      "season": "2023",
+      "winner": "Royal Challengers Bangalore",
+      "wins": 7
+    },
+    {
+      "season": "2023",
+      "winner": "Kolkata Knight Riders",
+      "wins": 6
+    },
+    {
+      "season": "2023",
+      "winner": "Punjab Kings",
+      "wins": 6
+    },
+    {
+      "season": "2023",
+      "winner": "Delhi Capitals",
+      "wins": 5
+    },
+    {
+      "season": "2023",
+      "winner": "Sunrisers Hyderabad",
+      "wins": 4
+    },
+    {
+      "season": "2024",
+      "winner": "Kolkata Knight Riders",
+      "wins": 11
+    },
+    {
+      "season": "2024",
+      "winner": "Rajasthan Royals",
+      "wins": 9
+    },
+    {
+      "season": "2024",
+      "winner": "Sunrisers Hyderabad",
+      "wins": 9
+    },
+    {
+      "season": "2024",
+      "winner": "Chennai Super Kings",
+      "wins": 7
+    },
+    {
+      "season": "2024",
+      "winner": "Delhi Capitals",
+      "wins": 7
+    },
+    {
+      "season": "2024",
+      "winner": "Lucknow Super Giants",
+      "wins": 7
+    },
+    {
+      "season": "2024",
+      "winner": "Royal Challengers Bengaluru",
+      "wins": 7
+    },
+    {
+      "season": "2024",
+      "winner": "Gujarat Titans",
+      "wins": 5
+    },
+    {
+      "season": "2024",
+      "winner": "Punjab Kings",
+      "wins": 5
+    },
+    {
+      "season": "2024",
+      "winner": "Mumbai Indians",
+      "wins": 4
+    }
+  ],
+  "top_scorer_per_season": [
+    {
+      "season": "2007/08",
+      "batter": "SE Marsh",
+      "total_runs": 616
+    },
+    {
+      "season": "2009",
+      "batter": "ML Hayden",
+      "total_runs": 572
+    },
+    {
+      "season": "2009/10",
+      "batter": "SR Tendulkar",
+      "total_runs": 618
+    },
+    {
+      "season": "2011",
+      "batter": "CH Gayle",
+      "total_runs": 608
+    },
+    {
+      "season": "2012",
+      "batter": "CH Gayle",
+      "total_runs": 733
+    },
+    {
+      "season": "2013",
+      "batter": "MEK Hussey",
+      "total_runs": 733
+    },
+    {
+      "season": "2014",
+      "batter": "RV Uthappa",
+      "total_runs": 660
+    },
+    {
+      "season": "2015",
+      "batter": "DA Warner",
+      "total_runs": 562
+    },
+    {
+      "season": "2016",
+      "batter": "V Kohli",
+      "total_runs": 973
+    },
+    {
+      "season": "2017",
+      "batter": "DA Warner",
+      "total_runs": 641
+    },
+    {
+      "season": "2018",
+      "batter": "KS Williamson",
+      "total_runs": 735
+    },
+    {
+      "season": "2019",
+      "batter": "DA Warner",
+      "total_runs": 692
+    },
+    {
+      "season": "2020/21",
+      "batter": "KL Rahul",
+      "total_runs": 676
+    },
+    {
+      "season": "2021",
+      "batter": "RD Gaikwad",
+      "total_runs": 635
+    },
+    {
+      "season": "2022",
+      "batter": "JC Buttler",
+      "total_runs": 863
+    },
+    {
+      "season": "2023",
+      "batter": "Shubman Gill",
+      "total_runs": 890
+    },
+    {
+      "season": "2024",
+      "batter": "V Kohli",
+      "total_runs": 741
+    }
+  ],
+  "summary": {
+    "total_matches": 1095,
+    "total_seasons": 17,
+    "total_teams": 19,
+    "total_deliveries": 260920,
+    "total_runs_scored": 347756,
+    "total_sixes": 13051,
+    "total_fours": 29850,
+    "total_wickets": 11818,
+    "venues": 58
+  }
+}
+</script>
+
+<script>
+const DATA = JSON.parse(document.getElementById('data').textContent);
+const GOLD = '#E7B53A', RED='#C4433C', GREEN='#5FBF7A', MUTED='#93A896', GRID='rgba(233,229,209,0.08)', CREAM='#EFEADA';
+Chart.defaults.color = MUTED;
+Chart.defaults.font.family = "'Inter', sans-serif";
+Chart.defaults.font.size = 12;
+
+function fmt(n){ return Number(n).toLocaleString('en-IN'); }
+
+// ---- KPI strip ----
+const s = DATA.summary;
+const kpis = [
+  ['Matches', s.total_matches],
+  ['Seasons', s.total_seasons],
+  ['Teams', s.total_teams],
+  ['Deliveries', fmt(s.total_deliveries)],
+  ['Runs scored', fmt(s.total_runs_scored)],
+  ['Sixes', fmt(s.total_sixes)],
+  ['Fours', fmt(s.total_fours)],
+  ['Wickets', fmt(s.total_wickets)],
+  ['Venues', s.venues],
+];
+document.getElementById('kpiRow').innerHTML = kpis.map(([l,v])=>
+  `<div class="kpi"><div class="num">${v}</div><div class="lbl">${l}</div></div>`).join('');
+document.getElementById('hdr-matches').textContent = fmt(s.total_matches);
+document.getElementById('hdr-balls').textContent = fmt(s.total_deliveries);
+
+// ---- 1. Team wins ----
+new Chart(document.getElementById('chartTeamWins'), {
+  type:'bar',
+  data:{ labels: DATA.team_wins.map(d=>d.winner),
+    datasets:[{ data: DATA.team_wins.map(d=>d.total_wins), backgroundColor: GOLD, borderRadius:3, maxBarThickness:22 }]},
+  options:{ responsive:true, maintainAspectRatio:false, indexAxis:'y',
+    plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>` ${fmt(c.raw)} wins`}} },
+    scales:{ x:{ grid:{color:GRID}, ticks:{color:MUTED} }, y:{ grid:{display:false}, ticks:{color:CREAM, font:{size:12}} } } }
+});
+
+// ---- 2. Batting leaders (toggle) ----
+let battingChart;
+function renderBatting(key, isSR){
+  const rows = DATA[key];
+  const labels = rows.map(d=>d.batter);
+  const values = isSR ? rows.map(d=>d.strike_rate) : rows.map(d=>Object.values(d)[1]);
+  if(battingChart) battingChart.destroy();
+  battingChart = new Chart(document.getElementById('chartBatting'), {
+    type:'bar',
+    data:{ labels, datasets:[{ data: values, backgroundColor: RED, borderRadius:3, maxBarThickness:22 }]},
+    options:{ responsive:true, maintainAspectRatio:false, indexAxis:'y',
+      plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>isSR ? ` SR ${c.raw}` : ` ${fmt(c.raw)}`}} },
+      scales:{ x:{ grid:{color:GRID}, ticks:{color:MUTED} }, y:{ grid:{display:false}, ticks:{color:CREAM, font:{size:12}} } } }
+  });
+}
+renderBatting('top_run_scorers', false);
+document.getElementById('battingTabs').addEventListener('click', e=>{
+  const btn = e.target.closest('.tabbtn'); if(!btn) return;
+  document.querySelectorAll('#battingTabs .tabbtn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderBatting(btn.dataset.k, !!btn.dataset.sr);
+});
+
+// ---- 3. Bowling ----
+new Chart(document.getElementById('chartWickets'), {
+  type:'bar',
+  data:{ labels: DATA.top_wicket_takers.map(d=>d.bowler),
+    datasets:[{ data: DATA.top_wicket_takers.map(d=>d.total_wickets), backgroundColor: GREEN, borderRadius:3, maxBarThickness:18 }]},
+  options:{ responsive:true, maintainAspectRatio:false, indexAxis:'y',
+    plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>` ${c.raw} wickets`}} },
+    scales:{ x:{ grid:{color:GRID}, ticks:{color:MUTED} }, y:{ grid:{display:false}, ticks:{color:CREAM, font:{size:11.5} } } } }
+});
+document.getElementById('tblEconomy').innerHTML =
+  '<tr><th>#</th><th>Bowler</th><th class="num">Balls</th><th class="num">Econ</th></tr>' +
+  DATA.top_economy_rates.map((d,i)=>`<tr><td class="rank">${i+1}</td><td>${d.bowler}</td><td class="num">${fmt(d.balls_bowled)}</td><td class="num">${d.economy_rate}</td></tr>`).join('');
+
+// ---- 4. Match records ----
+document.getElementById('tblHighScores').innerHTML =
+  '<tr><th>#</th><th>Batter</th><th class="num">Runs</th></tr>' +
+  DATA.highest_individual_scores.map((d,i)=>`<tr><td class="rank">${i+1}</td><td>${d.batter}</td><td class="num">${d.individual_score}</td></tr>`).join('');
+document.getElementById('tblTeamHigh').innerHTML =
+  '<tr><th>#</th><th>Team</th><th class="num">Score</th></tr>' +
+  DATA.highest_team_scores.slice(0,10).map((d,i)=>`<tr><td class="rank">${i+1}</td><td>${d.batting_team}</td><td class="num">${d.highest_score}</td></tr>`).join('');
+document.getElementById('tblPOM').innerHTML =
+  '<tr><th>#</th><th>Player</th><th class="num">Awards</th></tr>' +
+  DATA.top_pom_awards.map((d,i)=>`<tr><td class="rank">${i+1}</td><td>${d.player_of_match}</td><td class="num">${d.awards}</td></tr>`).join('');
+
+// ---- 5. Toss ----
+new Chart(document.getElementById('chartToss'), {
+  type:'bar',
+  data:{ labels: DATA.toss_decision_vs_result.map(d=>d.toss_decision==='field' ? 'Field first' : 'Bat first'),
+    datasets:[{ data: DATA.toss_decision_vs_result.map(d=>d.win_percentage), backgroundColor:[GOLD,RED], borderRadius:4, maxBarThickness:60 }]},
+  options:{ responsive:true, maintainAspectRatio:false, indexAxis:'y',
+    plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>` ${c.raw}% win rate`}} },
+    scales:{ x:{ min:0, max:100, grid:{color:GRID}, ticks:{color:MUTED, callback:v=>v+'%'} }, y:{ grid:{display:false}, ticks:{color:CREAM, font:{size:13}} } } }
+});
+document.getElementById('tblTossConv').innerHTML =
+  '<tr><th>Team</th><th class="num">Toss wins</th><th class="num">Match wins</th><th class="num">Conv.</th></tr>' +
+  DATA.toss_conversion.slice(0,10).map(d=>`<tr><td>${d.toss_winner}</td><td class="num">${d.toss_wins}</td><td class="num">${d.match_wins_after_toss}</td><td class="num">${d.conversion_percentage}%</td></tr>`).join('');
+
+// ---- 6. Avg team score ----
+new Chart(document.getElementById('chartAvgScore'), {
+  type:'bar',
+  data:{ labels: DATA.avg_team_score.map(d=>d.batting_team),
+    datasets:[{ data: DATA.avg_team_score.map(d=>d.average_score), backgroundColor: GOLD, borderRadius:3, maxBarThickness:20 }]},
+  options:{ responsive:true, maintainAspectRatio:false, indexAxis:'y',
+    plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>` ${c.raw} runs/innings`}} },
+    scales:{ x:{ grid:{color:GRID}, ticks:{color:MUTED} }, y:{ grid:{display:false}, ticks:{color:CREAM, font:{size:11.5}} } } }
+});
+
+// ---- 7. Season explorer ----
+const seasons = [...new Set(DATA.season_wise_wins.map(d=>d.season))];
+const seasonSel = document.getElementById('seasonSelect');
+seasonSel.innerHTML = seasons.map(s=>`<option value="${s}">${s}</option>`).join('');
+let seasonChart;
+function renderSeason(season){
+  const rows = DATA.season_wise_wins.filter(d=>d.season===season);
+  if(seasonChart) seasonChart.destroy();
+  seasonChart = new Chart(document.getElementById('chartSeasonWins'), {
+    type:'bar',
+    data:{ labels: rows.map(d=>d.winner), datasets:[{ data: rows.map(d=>d.wins), backgroundColor: RED, borderRadius:3, maxBarThickness:26 }]},
+    options:{ responsive:true, maintainAspectRatio:false, indexAxis:'y',
+      plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>` ${c.raw} wins`}} },
+      scales:{ x:{ grid:{color:GRID}, ticks:{color:MUTED, precision:0} }, y:{ grid:{display:false}, ticks:{color:CREAM, font:{size:12}} } } }
+  });
+  const top = DATA.top_scorer_per_season.find(d=>d.season===season);
+  document.getElementById('trophySeason').textContent = season;
+  document.getElementById('trophyPlayer').textContent = top ? top.batter : '—';
+  document.getElementById('trophyRuns').textContent = top ? `${fmt(top.total_runs)} runs` : '';
+}
+seasonSel.value = seasons[seasons.length-1];
+renderSeason(seasons[seasons.length-1]);
+seasonSel.addEventListener('change', e=>renderSeason(e.target.value));
+</script>
+</body>
+</html>
